@@ -1,11 +1,9 @@
 #include "editor.hpp"
 
 #include "nodes/nodes.hpp"
-#include "visitors/centauriserializer.hpp"
 #include "visitors/nodemenurenderer.hpp"
 #include "visitors/linkverifier.hpp"
-
-#include <sstream>
+#include "visitors/nodeduplicator.hpp"
 
 namespace fsme
 {
@@ -37,16 +35,6 @@ void FsmEditor::render()
 		{
 			ImGui::PushID(p.second.get());
 			p.second->accept(m_node_renderer);
-
-			if (is_node_selected(p.second->node_id()))
-			{
-				ed::Suspend();
-				std::ostringstream ss;
-				const bool was_serializable = visitors::CentauriSerializer::serialize(ss, *p.second);
-				ImGui::SetTooltip("Serializable? %d\n%s", was_serializable, ss.str().c_str());
-				ed::Resume();
-			}
-
 			ImGui::PopID();
 		}
 
@@ -58,6 +46,28 @@ void FsmEditor::render()
 		render_popups();
 
 		refresh_selected_objects();
+				/*visitors::NodeDuplicator duplicator;
+				get_node_by_id(id)->accept(duplicator);*/
+
+		if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
+		{
+			ed::Suspend();
+			ImGui::OpenPopup("Create new node");
+			ed::Resume();
+		}
+
+		if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape), false))
+		{
+			for (const ed::NodeId& id : m_selected_nodes)
+			{
+				ed::DeselectNode(id);
+			}
+
+			for (const ed::LinkId& id : m_selected_links)
+			{
+				ed::DeselectLink(id);
+			}
+		}
 
 		ed::End();
 	}
@@ -250,16 +260,19 @@ void FsmEditor::render_popups()
 	if (ed::ShowNodeContextMenu(&m_context_menu_node))
 	{
 		ImGui::OpenPopup("Node context menu");
+		ed::SelectNode(m_context_menu_node);
 	}
 
 	if (ed::ShowPinContextMenu(&m_context_menu_pin))
 	{
 		ImGui::OpenPopup("Pin context menu");
+		ed::SelectNode(get_node_by_pin_id(m_context_menu_pin)->node_id());
 	}
 
 	if (ed::ShowLinkContextMenu(&m_context_menu_link))
 	{
 		ImGui::OpenPopup("Link context menu");
+		ed::SelectLink(m_context_menu_link);
 	}
 
 	if (ed::ShowBackgroundContextMenu())
@@ -371,11 +384,6 @@ void FsmEditor::render_popups()
 		{
 			created_node = &make_node<nodes::StateNode>();
 			ImGui::CloseCurrentPopup();
-		}
-
-		if (ImGui::IsItemHovered())
-		{
-			//ImGui::SetTooltip("");
 		}
 
 		if (ImGui::Selectable("If node"))

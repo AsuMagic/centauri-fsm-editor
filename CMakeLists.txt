@@ -15,6 +15,7 @@ add_executable(${PROJECT_NAME}
     src/fsm-editor/visitors/centauriserializer.cpp
     src/fsm-editor/visitors/linkverifier.cpp
     src/fsm-editor/visitors/predvisitor.cpp
+    src/fsm-editor/visitors/nodeduplicator.cpp
     src/fsm-editor/visitors/noderenderer.cpp
     src/fsm-editor/visitors/nodemenurenderer.cpp
     src/fsm-editor/widgets/boolexprinput.cpp

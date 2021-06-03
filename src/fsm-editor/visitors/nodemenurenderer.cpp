@@ -2,6 +2,10 @@
 
 #include "../nodes/nodes.hpp"
 #include "../editor.hpp"
+#include "../visitors/centauriserializer.hpp"
+#include "../visitors/nodeduplicator.hpp"
+
+#include <sstream>
 
 namespace fsme
 {
@@ -30,6 +34,15 @@ void NodeMenuRenderer::visit(nodes::StateNode& node)
 {
 	ImGui::Text("State node");
 	render_generic_buttons(node);
+
+	if (ImGui::Button("Export into Centauri format"))
+	{
+		std::ostringstream ss;
+		if (CentauriSerializer::serialize(ss, node))
+		{
+			fputs(ss.str().c_str(), stdout);
+		}
+	}
 }
 
 void NodeMenuRenderer::render_generic_buttons(Node& node)
@@ -61,6 +74,8 @@ void NodeMenuRenderer::render_generic_buttons(Node& node)
 	ImGui::SameLine();
 	if (ImGui::Button("Duplicate"))
 	{
+		NodeDuplicator duplicator;
+		node.accept(duplicator);
 		ImGui::CloseCurrentPopup();
 	}
 }
