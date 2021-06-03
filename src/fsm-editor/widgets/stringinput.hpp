@@ -5,6 +5,8 @@
 
 namespace fsme
 {
+namespace widgets
+{
 
 class StringInput
 {
@@ -23,4 +25,5 @@ private:
 	std::string m_hint;
 };
 
+}
 }

@@ -5,8 +5,10 @@
 
 namespace fsme
 {
+namespace visitors
+{
 
-void NodeRenderer::visit(CondNode& node)
+void NodeRenderer::visit(nodes::CondNode& node)
 {
 	const auto& editor = node.editor();
 	const bool editable = editor.is_node_selected(node.node_id());
@@ -93,7 +95,7 @@ void NodeRenderer::visit(CondNode& node)
 	}
 }
 
-void NodeRenderer::visit(IfNode& node)
+void NodeRenderer::visit(nodes::IfNode& node)
 {
 	const auto& editor = node.editor();
 	const bool editable = editor.is_node_selected(node.node_id());
@@ -136,7 +138,7 @@ void NodeRenderer::visit(IfNode& node)
 	ed::PopStyleColor(2);
 }
 
-void NodeRenderer::visit(StateNode& node)
+void NodeRenderer::visit(nodes::StateNode& node)
 {
 	const auto& editor = node.editor();
 	const bool editable = editor.is_node_selected(node.node_id());
@@ -184,4 +186,5 @@ void NodeRenderer::visit(StateNode& node)
 	ed::PopStyleColor(2);
 }
 
+}
 }

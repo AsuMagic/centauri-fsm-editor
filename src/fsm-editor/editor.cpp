@@ -2,6 +2,8 @@
 
 #include "nodes/nodes.hpp"
 #include "visitors/centauriserializer.hpp"
+#include "visitors/nodemenurenderer.hpp"
+#include "visitors/linkverifier.hpp"
 
 #include <sstream>
 
@@ -40,7 +42,7 @@ void FsmEditor::render()
 			{
 				ed::Suspend();
 				std::ostringstream ss;
-				const bool was_serializable = CentauriSerializer::serialize(ss, *p.second);
+				const bool was_serializable = visitors::CentauriSerializer::serialize(ss, *p.second);
 				ImGui::SetTooltip("Serializable? %d\n%s", was_serializable, ss.str().c_str());
 				ed::Resume();
 			}
@@ -94,8 +96,8 @@ ed::LinkId FsmEditor::create_link(PinPair pin_pair)
 	m_link_infos.emplace(std::make_pair(id, pin_pair));
 
 	LinkInfo link{id, pin_pair};
-	m_pin_infos.at(pin_pair.start).links.push_back(link);
-	m_pin_infos.at(pin_pair.end).links.push_back(link);
+	m_pin_infos.at(pin_pair.from).links.push_back(link);
+	m_pin_infos.at(pin_pair.to).links.push_back(link);
 
 	return id;
 }
@@ -108,8 +110,8 @@ void FsmEditor::destroy_link(ed::LinkId link)
 		const PinPair pin_pair = it->second;
 		m_link_infos.erase(it);
 
-		detail::erase(m_pin_infos.at(pin_pair.start).links, pin_pair);
-		detail::erase(m_pin_infos.at(pin_pair.end).links, pin_pair);
+		detail::erase(m_pin_infos.at(pin_pair.from).links, pin_pair);
+		detail::erase(m_pin_infos.at(pin_pair.to).links, pin_pair);
 	}
 }
 
@@ -159,37 +161,25 @@ void FsmEditor::handle_item_creation()
 {
 	if (ed::BeginCreate())
 	{
-		ed::PinId in, out;
-		if (ed::QueryNewLink(&in, &out))
+		ed::PinId from;
+		ed::PinId to;
+		if (ed::QueryNewLink(&from, &to))
 		{
+			visitors::LinkFeasibility feasibility;
 			const auto try_create_link = [&] {
-				const auto* start_node = get_node_by_pin_id(in);
-				const auto* end_node = get_node_by_pin_id(out);
-
-				if (start_node != nullptr && end_node != nullptr
-					&& start_node->can_connect(in, out)
-					&& end_node->can_connect(in, out))
+				feasibility = visitors::LinkVerifier::verify(*this, from, to);
+				if (feasibility == visitors::LinkFeasibility::FEASIBLE && ed::AcceptNewItem())
 				{
-					if (ed::AcceptNewItem())
-					{
-						create_link({in, out});
-					}
-
-					return true;
+					create_link({from, to});
 				}
 
-				return false;
+				return feasibility;
 			};
 
-			if (!try_create_link())
+			if (try_create_link() != visitors::LinkFeasibility::FEASIBLE)
 			{
-				// Interpret connecting an input to an output the same as
-				// connecting an output to an input.
-				std::swap(in, out);
-				if (!try_create_link())
-				{
-					ed::RejectNewItem();
-				}
+				ed::RejectNewItem();
+				ImGui::SetTooltip("%s", get_feasibility_string(feasibility));
 			}
 		}
 	}
@@ -237,10 +227,10 @@ void FsmEditor::render_links()
 		const ed::LinkId id = p.first;
 		const PinPair& pins = p.second;
 
-		ed::Link(id, pins.start, pins.end);
+		ed::Link(id, pins.from, pins.to);
 
-		if (is_node_selected(get_node_by_pin_id(pins.start)->node_id())
-		 || is_node_selected(get_node_by_pin_id(pins.end)->node_id()))
+		if (is_node_selected(get_node_by_pin_id(pins.from)->node_id())
+		 || is_node_selected(get_node_by_pin_id(pins.to)->node_id()))
 		{
 			ed::PushStyleVar(ed::StyleVar_FlowSpeed, 20.0f);
 			ed::PushStyleVar(ed::StyleVar_FlowDuration, 0.2f);
@@ -283,7 +273,7 @@ void FsmEditor::render_popups()
 
 		if (node != nullptr)
 		{
-			node->render_context_menu();
+			node->accept(m_node_menu_renderer);
 		}
 		else
 		{
@@ -329,8 +319,8 @@ void FsmEditor::render_popups()
 
 			ImGui::Text("Select node:");
 
-			const ed::NodeId source_node_id = get_node_by_pin_id(info->start)->node_id();
-			const ed::NodeId target_node_id = get_node_by_pin_id(info->end)->node_id();
+			const ed::NodeId source_node_id = get_node_by_pin_id(info->from)->node_id();
+			const ed::NodeId target_node_id = get_node_by_pin_id(info->to)->node_id();
 
 			ImGui::SameLine();
 			if (ImGui::Button("source"))
@@ -379,7 +369,7 @@ void FsmEditor::render_popups()
 
 		if (ImGui::Selectable("State node"))
 		{
-			created_node = &make_node<StateNode>();
+			created_node = &make_node<nodes::StateNode>();
 			ImGui::CloseCurrentPopup();
 		}
 
@@ -390,7 +380,7 @@ void FsmEditor::render_popups()
 
 		if (ImGui::Selectable("If node"))
 		{
-			created_node = &make_node<IfNode>();
+			created_node = &make_node<nodes::IfNode>();
 			ImGui::CloseCurrentPopup();
 		}
 
@@ -404,7 +394,7 @@ void FsmEditor::render_popups()
 
 		if (ImGui::Selectable("Conditional block node"))
 		{
-			created_node = &make_node<CondNode>();
+			created_node = &make_node<nodes::CondNode>();
 			ImGui::CloseCurrentPopup();
 		}
 

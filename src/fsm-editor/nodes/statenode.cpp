@@ -4,6 +4,8 @@
 
 namespace fsme
 {
+namespace nodes
+{
 
 StateNode::StateNode(FsmEditor& editor, ax::NodeEditor::NodeId id) :
 	Node(editor, id)
@@ -14,10 +16,5 @@ StateNode::StateNode(FsmEditor& editor, ax::NodeEditor::NodeId id) :
 	m_name_input.set_hint("State name");
 }
 
-void StateNode::render_context_menu()
-{
-	ImGui::Text("State node");
-	Node::render_context_menu();
 }
-
 }

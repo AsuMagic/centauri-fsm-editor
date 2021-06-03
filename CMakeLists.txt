@@ -13,8 +13,10 @@ add_executable(${PROJECT_NAME}
     src/fsm-editor/nodes/ifnode.cpp
     src/fsm-editor/nodes/statenode.cpp
     src/fsm-editor/visitors/centauriserializer.cpp
+    src/fsm-editor/visitors/linkverifier.cpp
     src/fsm-editor/visitors/predvisitor.cpp
     src/fsm-editor/visitors/noderenderer.cpp
+    src/fsm-editor/visitors/nodemenurenderer.cpp
     src/fsm-editor/widgets/boolexprinput.cpp
     src/fsm-editor/widgets/stringinput.cpp
     src/imgui-node-editor/crude_json.cpp

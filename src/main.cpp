@@ -1,37 +1,52 @@
-#include "imgui.h" // necessary for ImGui::*, imgui-SFML.h doesn't include imgui.h
-
-#include "imgui-SFML.h" // for ImGui::SFML::* functions and SFML-specific overloads
+#include "imgui.h"
+#include "imgui-SFML.h"
 
 #include "imgui-node-editor/imgui_node_editor.h"
 
 #include "fsm-editor/editor.hpp"
-#include "fsm-editor/nodes/nodes.hpp"
-#include "fsm-editor/widgets/boolexprinput.hpp"
 
-#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
 
+/**
+ * @mainpage Planet Centauri FSM editor
+ *
+ * This tool allows to edit FSMs that can be translated into Lua code using user-friendly transition graphs. The main
+ * purpose of this is to ease definition of monster logic in a graphical way.
+ *
+ * Here are a few points of interest to get started in this codebase:
+ * - fsme::FsmEditor is the class that handles UI and manages graph entities (nodes, links, etc.).
+ * - fsme::nodes is the namespace containing all different node types, which inherit from fsme::Node.
+ * - fsme::visitors is the namespace containing visitors, which inherit from fsme::NodeVisitor. This allows performing
+ * operations on nodes and the graph without requiring to add logic to fsme::Node itself.
+ * - fsme::widgets is the namespace containing several GUI widgets, such as text input abstraction (hiding away
+ * allocation details and such).
+ *
+ * At the moment, dependencies are expected to be installed using vcpkg:
+ * - `imgui`
+ * - `imgui-sfml`
+ * - `sfml`
+ *
+ * The `imgui-node-editor` is included within the source directly.
+ */
+
 int main()
 {
-	sf::ContextSettings settings;
-	//settings.antialiasingLevel = 16;
-	sf::RenderWindow window(sf::VideoMode(2560, 1440), "centauri-imgui-test", sf::Style::Default, settings);
+	sf::RenderWindow window(sf::VideoMode(2560, 1440), "Centauri FSM editor");
 	window.setFramerateLimit(75);
 	ImGui::SFML::Init(window);
 
-	auto& IO = ImGui::GetIO();
-	IO.Fonts->Clear(); // clear fonts if you loaded some before (even if only default one was loaded)
-	// IO.Fonts->AddFontDefault(); // this will load default font as well
-	IO.Fonts->AddFontFromFileTTF("CascadiaCode-Regular.ttf", 16.f);
-	IO.Fonts->AddFontFromFileTTF("CascadiaCode-Bold.ttf", 16.f);
+	auto& io = ImGui::GetIO();
 
-	ImGui::SFML::UpdateFontTexture(); // important call: updates font texture
+	io.Fonts->Clear();
+	io.Fonts->AddFontFromFileTTF("CascadiaCode-Regular.ttf", 16.f);
+	io.Fonts->AddFontFromFileTTF("CascadiaCode-Bold.ttf", 16.f);
+	ImGui::SFML::UpdateFontTexture();
 
 	fsme::FsmEditor editor;
 
-	fsme::BoolExpressionAutocomplete autocomplete;
+	fsme::widgets::BoolExpressionAutocomplete autocomplete;
 
 	{
 		autocomplete.add_option("Keys", {"space", "self.inputs:check(InputKey.Space)"});
@@ -44,12 +59,14 @@ int main()
 	editor.set_autocomplete_provider(&autocomplete);
 
 	sf::Clock deltaClock;
-	while (window.isOpen()) {
-		sf::Event event;
-		while (window.pollEvent(event)) {
+	while (window.isOpen())
+	{
+		for (sf::Event event{}; window.pollEvent(event);)
+		{
 			ImGui::SFML::ProcessEvent(event);
 
-			if (event.type == sf::Event::Closed) {
+			if (event.type == sf::Event::Closed)
+			{
 				window.close();
 			}
 		}

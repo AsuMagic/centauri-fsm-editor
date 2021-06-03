@@ -4,6 +4,8 @@
 
 namespace fsme
 {
+namespace widgets
+{
 
 StringInput::StringInput() :
 	m_buffer{0}
@@ -46,4 +48,5 @@ void StringInput::set_hint(std::string value)
 	m_hint = std::move(value);
 }
 
+}
 }

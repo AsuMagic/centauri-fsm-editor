@@ -18,37 +18,6 @@ Node::~Node()
 	resize_pins(m_outputs, 0);
 }
 
-void Node::render_context_menu()
-{
-	if (ImGui::Button("Delete"))
-	{
-		editor().destroy_node(node_id());
-		ImGui::CloseCurrentPopup();
-	}
-
-	ImGui::SameLine();
-	if (ImGui::Button("Erase links"))
-	{
-		for (const auto& input : inputs())
-		{
-			editor().destroy_links_involving(input);
-		}
-
-		for (const auto& output : outputs())
-		{
-			editor().destroy_links_involving(output);
-		}
-
-		ImGui::CloseCurrentPopup();
-	}
-
-	ImGui::SameLine();
-	if (ImGui::Button("Duplicate"))
-	{
-		ImGui::CloseCurrentPopup();
-	}
-}
-
 int Node::pin_index_or_default(ed::PinId needle, const std::vector<ed::PinId>& haystack, int if_not_found) const
 {
 	const auto it = std::find(haystack.begin(), haystack.end(), needle);

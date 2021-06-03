@@ -6,6 +6,8 @@
 
 namespace fsme
 {
+namespace visitors
+{
 
 bool CentauriSerializer::serialize(std::ostream& output, Node& node)
 {
@@ -14,9 +16,9 @@ bool CentauriSerializer::serialize(std::ostream& output, Node& node)
 	return serializer.m_visited_root;
 }
 
-void CentauriSerializer::visit(CondNode& node)
+void CentauriSerializer::visit(nodes::CondNode& node)
 {
-	if (!m_visited_root)
+	if (!m_visited_root && !mark_visited(node))
 	{
 		return;
 	}
@@ -45,9 +47,9 @@ void CentauriSerializer::visit(CondNode& node)
 	visit_outputs(node);
 }
 
-void CentauriSerializer::visit(IfNode& node)
+void CentauriSerializer::visit(nodes::IfNode& node)
 {
-	if (!m_visited_root)
+	if (!m_visited_root && !mark_visited(node))
 	{
 		return;
 	}
@@ -64,8 +66,13 @@ void CentauriSerializer::visit(IfNode& node)
 	visit_outputs(node);
 }
 
-void CentauriSerializer::visit(StateNode& node)
+void CentauriSerializer::visit(nodes::StateNode& node)
 {
+	if (!mark_visited(node))
+	{
+		return;
+	}
+
 	if (!m_visited_root)
 	{
 		m_visited_root = true;
@@ -82,13 +89,26 @@ CentauriSerializer::CentauriSerializer(std::ostream& output) :
 	m_out(&output)
 {}
 
+bool CentauriSerializer::mark_visited(const Node& node)
+{
+	const bool was_visited = m_visited_nodes.find(node.node_id()) != m_visited_nodes.end();
+
+	if (was_visited)
+	{
+		return false;
+	}
+
+	m_visited_nodes.insert(node.node_id());
+	return true;
+}
+
 void CentauriSerializer::visit_outputs(Node& node)
 {
 	for (const ed::PinId& output : node.outputs())
 	{
 		for (const auto& link : node.editor().get_pin_info(output)->links)
 		{
-			node.editor().get_node_by_pin_id(link.pins.end)->accept(*this);
+			node.editor().get_node_by_pin_id(link.pins.to)->accept(*this);
 		}
 	}
 }
@@ -123,7 +143,8 @@ std::uint32_t CentauriSerializer::get_node_id_for_pin(const FsmEditor& editor, e
 
 	const PinPair& pair = pin_info->links[0].pins;
 
-	return std::uintptr_t(editor.get_node_by_pin_id(pin != pair.start ? pair.start : pair.end)->node_id());
+	return std::uintptr_t(editor.get_node_by_pin_id(pin != pair.from ? pair.from : pair.to)->node_id());
 }
 
+}
 }

@@ -9,6 +9,8 @@
 
 namespace fsme
 {
+namespace widgets
+{
 
 struct BoolExpressionOption
 {
@@ -125,4 +127,5 @@ inline std::size_t BoolExpressionInput::get_id() const
 	return m_id;
 }
 
+}
 }

@@ -8,6 +8,8 @@
 
 namespace fsme
 {
+namespace widgets
+{
 
 BoolExpressionInput::BoolExpressionInput(std::size_t id) :
 	m_id(id)
@@ -204,4 +206,5 @@ const BoolExpressionOption* BoolExpressionAutocomplete::render(FilterOptions opt
 	return selected_option;
 }
 
+}
 }

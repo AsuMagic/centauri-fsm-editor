@@ -11,6 +11,21 @@ namespace fsme
 {
 class FsmEditor;
 
+/**
+ * @brief The type of a pin within a node.
+ *
+ * @see Node::pin_type()
+ */
+enum class PinType
+{
+	Input,   ///< The pin is an input within a given node. Links connect to it.
+	Output,  ///< The pin is an output within a given node. Links connect from it.
+	External ///< The pin is not part of a given node, but to a different node in the graph.
+};
+
+/**
+ * @brief A node within the FSM editor graph. Nodes and links are used to represent states and transitions.
+ */
 class Node
 {
 public:
@@ -18,20 +33,9 @@ public:
 
 	virtual ~Node();
 
-	virtual void render_context_menu();
-
 	ed::NodeId node_id() const;
 
-	enum class PinType
-	{
-		Input,
-		Output,
-		External
-	};
-
 	FsmEditor& editor() const;
-
-	virtual bool can_connect(ed::PinId from, ed::PinId to) const;
 
 	PinType pin_type(ed::PinId id) const;
 
@@ -65,17 +69,7 @@ inline FsmEditor& Node::editor() const
 	return *m_editor;
 }
 
-inline bool Node::can_connect(ed::PinId from, ed::PinId to) const
-{
-	const PinType from_type = pin_type(from);
-	const PinType to_type = pin_type(to);
-
-	// Allow to connect the nodes only when connecting to another node
-	return (from_type == PinType::External && to_type == PinType::Input)
-		|| (from_type == PinType::Output && to_type == PinType::External);
-}
-
-inline Node::PinType Node::pin_type(ed::PinId id) const
+inline PinType Node::pin_type(ed::PinId id) const
 {
 	if (input_pin_index(id) != -1)
 	{

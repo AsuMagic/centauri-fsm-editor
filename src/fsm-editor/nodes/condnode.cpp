@@ -6,39 +6,14 @@
 
 namespace fsme
 {
+namespace nodes
+{
 
 CondNode::CondNode(FsmEditor& editor, ax::NodeEditor::NodeId id) :
 	Node(editor, id)
 {
 	resize_pins(m_inputs, 1);
 	set_output_count(1);
-}
-
-void CondNode::render_context_menu()
-{
-	ImGui::Text("Conditional block");
-	Node::render_context_menu();
-
-	if (ImGui::Button("Clear all outputs"))
-	{
-		resize_pins(m_outputs, 0);
-		ImGui::CloseCurrentPopup();
-	}
-}
-
-bool CondNode::can_connect(ed::PinId from, ed::PinId to) const
-{
-	if (!Node::can_connect(from, to))
-	{
-		return false;
-	}
-
-	if (pin_type(from) == PinType::Output)
-	{
-		return !NodePredecessorFinder::find(const_cast<CondNode&>(*this), *editor().get_node_by_pin_id(to));
-	}
-
-	return true;
 }
 
 void CondNode::set_output_count(std::size_t i)
@@ -52,7 +27,13 @@ void CondNode::erase_output_pin(std::size_t i)
 	set_output_count(m_outputs.size()); // force to 1 minimum
 }
 
-BoolExpressionInput& CondNode::get_expression(ed::PinId output)
+void CondNode::reset_output_pins()
+{
+	resize_pins(m_outputs, 0);
+	set_output_count(0);
+}
+
+widgets::BoolExpressionInput& CondNode::get_expression(ed::PinId output)
 {
 	const auto it = m_conditions.find(output);
 
@@ -65,4 +46,5 @@ BoolExpressionInput& CondNode::get_expression(ed::PinId output)
 	return it->second;
 }
 
+}
 }

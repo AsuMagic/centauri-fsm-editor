@@ -5,22 +5,23 @@
 
 namespace fsme
 {
+namespace nodes
+{
 
+/**
+ * @brief A node that implements a traditional if-else block.
+ */
 class IfNode : public Node
 {
 	public:
 	IfNode(FsmEditor& editor, ed::NodeId id);
 
-	void render_context_menu() override;
-
 	void accept(NodeVisitor& v) override;
 
-	bool can_connect(ed::PinId from, ed::PinId to) const override;
-
-	BoolExpressionInput& get_expression();
+	widgets::BoolExpressionInput& get_expression();
 
 	private:
-	BoolExpressionInput m_cond;
+	widgets::BoolExpressionInput m_cond;
 };
 
 inline void IfNode::accept(NodeVisitor& v)
@@ -28,9 +29,10 @@ inline void IfNode::accept(NodeVisitor& v)
 	v.visit(*this);
 }
 
-inline BoolExpressionInput& IfNode::get_expression()
+inline widgets::BoolExpressionInput& IfNode::get_expression()
 {
 	return m_cond;
 }
 
+}
 }

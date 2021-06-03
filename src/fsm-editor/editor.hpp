@@ -8,20 +8,31 @@
 #include "node.hpp"
 #include "widgets/boolexprinput.hpp"
 #include "visitors/noderenderer.hpp"
+#include "visitors/nodemenurenderer.hpp"
 
 namespace fsme
 {
 
+/**
+ * @brief A pair of pins that typically represent a link within the FSM graph.
+ */
 struct PinPair
 {
-	ed::PinId start, end;
+	/// @brief The source pin of a link, which is an output within its node.
+	ed::PinId from;
+
+	/// @brief The destination pin of a link, which is an input within its node.
+	ed::PinId to;
 
 	bool operator==(const PinPair& other) const
 	{
-		return std::tie(start, end) == std::tie(other.start, other.end);
+		return std::tie(from, to) == std::tie(other.from, other.to);
 	}
 };
 
+/**
+ * @brief Link information, containing the identifier of a link and the relevant pins.
+ */
 struct LinkInfo
 {
 	ed::LinkId id;
@@ -33,12 +44,18 @@ struct LinkInfo
 	}
 };
 
+/**
+ * @brief Pin information, containing the identifier of its node and any links related to this pin.
+ */
 struct PinInfo
 {
 	ed::NodeId node_id;
 	std::vector<LinkInfo> links;
 };
 
+/**
+ * @brief FSM editor class, which handles the UI and manages all graph-related entities.
+ */
 class FsmEditor
 {
 public:
@@ -47,6 +64,11 @@ public:
 
 	void render();
 
+	/**
+	 * @brief Returns a unique identifier for entities within the editor.
+	 * @details As a result, all entities have a unique identifier, and a pin will never have the same ID as a node,
+	 * for instance. This makes all IDs unique and more suitable for serialization.
+	 */
 	std::size_t new_unique_id();
 
 	template<class NodeType>
@@ -62,7 +84,17 @@ public:
 	}
 	void destroy_node(ed::NodeId id);
 
+	/**
+	 * @brief Creates a new pin, attached to a specific node.
+	 * @see new_unique_id() for ID allocation details
+	 */
 	ed::PinId create_pin(ed::NodeId node);
+
+	/**
+	 * @brief Destroys information for a given pin from the graph.
+	 * @warning This is insufficient to remove all information for a given pin, as Node stores lists of pin IDs which
+	 * are NOT cleared by this.
+	 */
 	void destroy_pin(ed::PinId pin);
 	const PinInfo* get_pin_info(ed::PinId pin) const;
 
@@ -78,8 +110,8 @@ public:
 	bool is_link_selected(ed::LinkId link) const;
 	bool is_node_selected(ed::NodeId node) const;
 
-	void set_autocomplete_provider(BoolExpressionAutocomplete* autocomplete_provider);
-	BoolExpressionAutocomplete* get_autocomplete_provider() const;
+	void set_autocomplete_provider(widgets::BoolExpressionAutocomplete* autocomplete_provider);
+	widgets::BoolExpressionAutocomplete* get_autocomplete_provider() const;
 
 private:
 	void handle_item_creation();
@@ -92,9 +124,10 @@ private:
 
 	ed::EditorContext* m_context;
 
-	BoolExpressionAutocomplete* m_autocomplete_provider;
+	widgets::BoolExpressionAutocomplete* m_autocomplete_provider;
 
-	NodeRenderer m_node_renderer;
+	visitors::NodeRenderer m_node_renderer;
+	visitors::NodeMenuRenderer m_node_menu_renderer;
 
 	std::size_t m_last_allocated_id;
 
@@ -115,12 +148,12 @@ inline std::size_t FsmEditor::new_unique_id()
 	return ++m_last_allocated_id;
 }
 
-inline void FsmEditor::set_autocomplete_provider(BoolExpressionAutocomplete* autocomplete_provider)
+inline void FsmEditor::set_autocomplete_provider(widgets::BoolExpressionAutocomplete* autocomplete_provider)
 {
 	m_autocomplete_provider = autocomplete_provider;
 }
 
-inline BoolExpressionAutocomplete* FsmEditor::get_autocomplete_provider() const
+inline widgets::BoolExpressionAutocomplete* FsmEditor::get_autocomplete_provider() const
 {
 	return m_autocomplete_provider;
 }

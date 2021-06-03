@@ -5,30 +5,32 @@
 
 namespace fsme
 {
+namespace visitors
+{
 
 NodePredecessorFinder::NodePredecessorFinder(Node& to_find) :
-	m_to_find(&to_find),
+	m_to_find(to_find.node_id()),
 	m_found(false)
 {}
 
-bool NodePredecessorFinder::find(Node& root, Node& to_find)
+bool NodePredecessorFinder::find_in_cond_tree(Node& root, Node& to_find)
 {
 	NodePredecessorFinder visitor(to_find);
 	root.accept(visitor);
 	return visitor.m_found;
 }
 
-void NodePredecessorFinder::visit(CondNode& node)
+void NodePredecessorFinder::visit(nodes::CondNode& node)
 {
 	check_cond_node(node);
 }
 
-void NodePredecessorFinder::visit(IfNode& node)
+void NodePredecessorFinder::visit(nodes::IfNode& node)
 {
 	check_cond_node(node);
 }
 
-void NodePredecessorFinder::visit(StateNode& node)
+void NodePredecessorFinder::visit(nodes::StateNode& node)
 {
 	check_node(node);
 }
@@ -54,15 +56,16 @@ void NodePredecessorFinder::check_cond_node(Node& node)
 		m_visited.emplace(node.node_id());
 		for (const LinkInfo& link : editor.get_pin_info(pin)->links)
 		{
-			editor.get_node_by_pin_id(link.pins.start)->accept(*this);
+			editor.get_node_by_pin_id(link.pins.from)->accept(*this);
 		}
 	}
 }
 
 bool NodePredecessorFinder::check_node(Node& node)
 {
-	m_found |= (&node == m_to_find);
+	m_found |= (node.node_id() == m_to_find);
 	return m_found;
 }
 
+}
 }
