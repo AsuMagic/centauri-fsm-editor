@@ -7,6 +7,9 @@ namespace fsme
 namespace visitors
 {
 
+/**
+ * @brief Duplicates a node and copies properties, but does not attempt to copy links.
+ */
 class NodeDuplicator : public NodeVisitor
 {
 public:
