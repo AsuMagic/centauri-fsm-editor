@@ -120,6 +120,8 @@ private:
 
 	void refresh_selected_objects();
 
+	void render_menu_bar();
+
 	void render_links();
 	void render_popups();
 

@@ -30,49 +30,50 @@ void FsmEditor::render()
 	ImGui::SetNextWindowPos(ImVec2(0.0, 0.0), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(m_target->getSize().x, m_target->getSize().y), ImGuiCond_Always);
 
-	if (ImGui::Begin("FSM editor", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
+	ImGui::Begin("FSM editor", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_MenuBar);
+
+	render_menu_bar();
+
+	ed::SetCurrentEditor(m_context);
+	ed::Begin("My Editor");
+
+	for (auto& p : m_nodes)
 	{
-		ed::SetCurrentEditor(m_context);
-		ed::Begin("My Editor");
-
-		for (auto& p : m_nodes)
-		{
-			ImGui::PushID(p.second.get());
-			p.second->accept(m_node_renderer);
-			ImGui::PopID();
-		}
-
-		handle_item_creation();
-		handle_item_deletion();
-
-		render_links();
-
-		render_popups();
-
-		refresh_selected_objects();
-
-		if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
-		{
-			ed::Suspend();
-			ImGui::OpenPopup("Create new node");
-			ed::Resume();
-		}
-
-		if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape), false))
-		{
-			for (const ed::NodeId& id : m_selected_nodes)
-			{
-				ed::DeselectNode(id);
-			}
-
-			for (const ed::LinkId& id : m_selected_links)
-			{
-				ed::DeselectLink(id);
-			}
-		}
-
-		ed::End();
+		ImGui::PushID(p.second.get());
+		p.second->accept(m_node_renderer);
+		ImGui::PopID();
 	}
+
+	handle_item_creation();
+	handle_item_deletion();
+
+	render_links();
+
+	render_popups();
+
+	refresh_selected_objects();
+
+	if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
+	{
+		ed::Suspend();
+		ImGui::OpenPopup("Create new node");
+		ed::Resume();
+	}
+
+	if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape), false))
+	{
+		for (const ed::NodeId& id : m_selected_nodes)
+		{
+			ed::DeselectNode(id);
+		}
+
+		for (const ed::LinkId& id : m_selected_links)
+		{
+			ed::DeselectLink(id);
+		}
+	}
+
+	ed::End();
 
 	ImGui::End();
 }
@@ -230,6 +231,52 @@ void FsmEditor::refresh_selected_objects()
 
 	m_selected_nodes.resize(ed::GetSelectedObjectCount());
 	m_selected_nodes.resize(ed::GetSelectedNodes(m_selected_nodes.data(), m_selected_nodes.size()));
+}
+
+void FsmEditor::render_menu_bar()
+{
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("New..."))
+			{
+
+			}
+
+			if (ImGui::MenuItem("Open..."))
+			{
+
+			}
+
+			if (ImGui::MenuItem("Save"))
+			{
+
+			}
+
+			if (ImGui::MenuItem("Save as..."))
+			{
+
+			}
+
+			if (ImGui::MenuItem("Export to Centauri format"))
+			{
+				// todo
+			}
+
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip(
+					"Export the FSM graph in a format that can be then translated into Lua source code.\n"
+					"This is a lossy export, so you will not be able to reopen an exported graph into the editor!"
+				);
+			}
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMenuBar();
+	}
 }
 
 void FsmEditor::render_links()
