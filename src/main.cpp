@@ -44,7 +44,7 @@ int main()
 	io.Fonts->AddFontFromFileTTF("CascadiaCode-Bold.ttf", 16.f);
 	ImGui::SFML::UpdateFontTexture();
 
-	fsme::FsmEditor editor;
+	fsme::FsmEditor editor(window);
 
 	fsme::widgets::BoolExpressionAutocomplete autocomplete;
 

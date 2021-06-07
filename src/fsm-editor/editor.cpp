@@ -8,7 +8,8 @@
 namespace fsme
 {
 
-FsmEditor::FsmEditor() :
+FsmEditor::FsmEditor(sf::RenderTarget& target) :
+	m_target(&target),
 	m_context(ed::CreateEditor()),
 	m_autocomplete_provider(nullptr),
 	m_last_allocated_id(0)
@@ -26,7 +27,10 @@ FsmEditor::~FsmEditor()
 
 void FsmEditor::render()
 {
-	if (ImGui::Begin("FSM editor"))
+	ImGui::SetNextWindowPos(ImVec2(0.0, 0.0), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(m_target->getSize().x, m_target->getSize().y), ImGuiCond_Always);
+
+	if (ImGui::Begin("FSM editor", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
 	{
 		ed::SetCurrentEditor(m_context);
 		ed::Begin("My Editor");
@@ -46,8 +50,6 @@ void FsmEditor::render()
 		render_popups();
 
 		refresh_selected_objects();
-				/*visitors::NodeDuplicator duplicator;
-				get_node_by_id(id)->accept(duplicator);*/
 
 		if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
 		{

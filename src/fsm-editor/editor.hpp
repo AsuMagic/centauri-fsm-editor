@@ -3,6 +3,7 @@
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <vector>
 #include <unordered_map>
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include "common.hpp"
 #include "node.hpp"
@@ -59,7 +60,7 @@ struct PinInfo
 class FsmEditor
 {
 public:
-	FsmEditor();
+	FsmEditor(sf::RenderTarget& target);
 	~FsmEditor();
 
 	void render();
@@ -121,6 +122,8 @@ private:
 
 	void render_links();
 	void render_popups();
+
+	sf::RenderTarget* m_target;
 
 	ed::EditorContext* m_context;
 
