@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../fwd.hpp"
 #include "../visitor.hpp"
+#include "../util/idhash.hpp"
 
 #include <ostream>
 #include <unordered_set>
@@ -15,7 +17,7 @@ namespace visitors
  */
 class CentauriSerializer : public NodeVisitor
 {
-	public:
+public:
 	/**
 	 * @brief Serializes a node into the centauri FSM graph format to a standard output stream.
 	 * @param output The text output. Nothing will be written to it if serialization does not happen.
@@ -28,7 +30,7 @@ class CentauriSerializer : public NodeVisitor
 	void visit(nodes::IfNode& node) override;
 	void visit(nodes::StateNode& node) override;
 
-	private:
+private:
 	CentauriSerializer(std::ostream& output);
 
 	bool mark_visited(const Node& node);

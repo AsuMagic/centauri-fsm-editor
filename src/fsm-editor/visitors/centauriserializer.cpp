@@ -3,6 +3,7 @@
 #include "../editor.hpp"
 #include "../nodes/nodes.hpp"
 #include "../widgets/boolexprinput.hpp"
+#include "../util/idhash.hpp"
 
 namespace fsme
 {

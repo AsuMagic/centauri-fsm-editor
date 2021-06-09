@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../visitor.hpp"
+#include "../fwd.hpp"
+#include "../util/idhash.hpp"
 
 #include <unordered_set>
 

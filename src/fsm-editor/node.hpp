@@ -1,10 +1,9 @@
 #pragma once
 
-#include <imgui-node-editor/imgui_node_editor.h>
 #include <vector>
 #include <onidev/core/span.h>
 
-#include "common.hpp"
+#include "util/imgui.hpp"
 #include "visitor.hpp"
 
 namespace fsme

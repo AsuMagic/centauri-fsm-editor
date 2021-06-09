@@ -68,29 +68,7 @@ struct SimpleExpressionInput
 {
 	std::set<const BoolExpressionOption*> options;
 
-	std::string text_preview() const
-	{
-		std::string ret;
-
-		std::size_t shown = 0;
-		for (const auto* option : options)
-		{
-			++shown;
-
-			ret += option->shorthand;
-			if (shown != options.size())
-			{
-				ret += " and ";
-			}
-		}
-
-		if (shown == 0)
-		{
-			return "[click me]";
-		}
-
-		return ret;
-	}
+	std::string text_preview() const;
 };
 
 class BoolExpressionInput
@@ -104,6 +82,12 @@ public:
 	void popup_render();
 
 	std::string as_lua_expression() const;
+
+	ExpressionInputType get_input_type() const { return m_input_type; }
+	void set_input_type(ExpressionInputType type) { m_input_type = type; }
+
+	PlainLuaInput& get_raw_lua_input() { return m_lua_input; }
+	SimpleExpressionInput& get_raw_simple_expression_input() { return m_expr_input; }
 
 	std::size_t get_id() const;
 

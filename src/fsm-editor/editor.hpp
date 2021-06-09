@@ -1,15 +1,17 @@
 #pragma once
 
-#include <imgui-node-editor/imgui_node_editor.h>
 #include <vector>
 #include <unordered_map>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-#include "common.hpp"
 #include "node.hpp"
 #include "widgets/boolexprinput.hpp"
+#include "widgets/stringinput.hpp"
 #include "visitors/noderenderer.hpp"
 #include "visitors/nodemenurenderer.hpp"
+#include "util/idhash.hpp"
+#include "util/imgui.hpp"
+#include "fwd.hpp"
 
 namespace fsme
 {
@@ -60,6 +62,8 @@ struct PinInfo
 class FsmEditor
 {
 public:
+	friend class visitors::NativeSerializer;
+
 	FsmEditor(sf::RenderTarget& target);
 	~FsmEditor();
 
@@ -121,6 +125,7 @@ private:
 	void refresh_selected_objects();
 
 	void render_menu_bar();
+	void render_canvas();
 
 	void render_links();
 	void render_popups();
@@ -130,6 +135,8 @@ private:
 	ed::EditorContext* m_context;
 
 	widgets::BoolExpressionAutocomplete* m_autocomplete_provider;
+
+	widgets::StringInput m_shared_input;
 
 	visitors::NodeRenderer m_node_renderer;
 	visitors::NodeMenuRenderer m_node_menu_renderer;

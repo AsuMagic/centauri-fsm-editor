@@ -1,6 +1,6 @@
 #include "boolexprinput.hpp"
 
-#include "../common.hpp"
+#include "../util/imgui.hpp"
 
 #include "imgui_internal.h" // YOLO: needed for the SelectableDontClosePopup flag
 
@@ -204,6 +204,30 @@ const BoolExpressionOption* BoolExpressionAutocomplete::render(FilterOptions opt
 	}
 
 	return selected_option;
+}
+
+std::string SimpleExpressionInput::text_preview() const
+{
+	std::string ret;
+
+	std::size_t shown = 0;
+	for (const auto* option : options)
+	{
+		++shown;
+
+		ret += option->shorthand;
+		if (shown != options.size())
+		{
+			ret += " and ";
+		}
+	}
+
+	if (shown == 0)
+	{
+		return "[click me]";
+	}
+
+	return ret;
 }
 
 }

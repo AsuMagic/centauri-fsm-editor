@@ -12,9 +12,11 @@ add_executable(${PROJECT_NAME}
     src/fsm-editor/nodes/condnode.cpp
     src/fsm-editor/nodes/ifnode.cpp
     src/fsm-editor/nodes/statenode.cpp
+    src/fsm-editor/util/imgui.cpp
     src/fsm-editor/visitors/centauriserializer.cpp
     src/fsm-editor/visitors/linkverifier.cpp
     src/fsm-editor/visitors/predvisitor.cpp
+    src/fsm-editor/visitors/nativeserializer.cpp
     src/fsm-editor/visitors/nodeduplicator.cpp
     src/fsm-editor/visitors/noderenderer.cpp
     src/fsm-editor/visitors/nodemenurenderer.cpp

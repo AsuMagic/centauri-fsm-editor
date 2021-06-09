@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../fwd.hpp"
 #include "../visitor.hpp"
 
 namespace fsme

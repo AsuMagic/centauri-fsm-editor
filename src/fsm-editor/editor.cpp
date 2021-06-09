@@ -4,6 +4,7 @@
 #include "visitors/nodemenurenderer.hpp"
 #include "visitors/linkverifier.hpp"
 #include "visitors/nodeduplicator.hpp"
+#include "util/erase.hpp"
 
 namespace fsme
 {
@@ -34,46 +35,18 @@ void FsmEditor::render()
 
 	render_menu_bar();
 
-	ed::SetCurrentEditor(m_context);
-	ed::Begin("My Editor");
+	ImGui::BeginChild("##loadsidebar", ImVec2(120.0f, ImGui::GetContentRegionAvail().y));
+/*
+	ImGui::Selectable("test");
+	ImGui::Selectable("test2");*/
 
-	for (auto& p : m_nodes)
-	{
-		ImGui::PushID(p.second.get());
-		p.second->accept(m_node_renderer);
-		ImGui::PopID();
-	}
+	ImGui::EndChild();
+	ImGui::SameLine();
+	ImGui::BeginChild("##canvas");
 
-	handle_item_creation();
-	handle_item_deletion();
+	render_canvas();
 
-	render_links();
-
-	render_popups();
-
-	refresh_selected_objects();
-
-	if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
-	{
-		ed::Suspend();
-		ImGui::OpenPopup("Create new node");
-		ed::Resume();
-	}
-
-	if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape), false))
-	{
-		for (const ed::NodeId& id : m_selected_nodes)
-		{
-			ed::DeselectNode(id);
-		}
-
-		for (const ed::LinkId& id : m_selected_links)
-		{
-			ed::DeselectLink(id);
-		}
-	}
-
-	ed::End();
+	ImGui::EndChild();
 
 	ImGui::End();
 }
@@ -235,18 +208,16 @@ void FsmEditor::refresh_selected_objects()
 
 void FsmEditor::render_menu_bar()
 {
+	bool open_new = false;
+
+	ImGui::PushID(this);
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
 		{
 			if (ImGui::MenuItem("New..."))
 			{
-
-			}
-
-			if (ImGui::MenuItem("Open..."))
-			{
-
+				open_new = true;
 			}
 
 			if (ImGui::MenuItem("Save"))
@@ -277,6 +248,84 @@ void FsmEditor::render_menu_bar()
 
 		ImGui::EndMenuBar();
 	}
+
+	if (open_new)
+	{
+		ImGui::OpenPopup("New file");
+		m_shared_input.get_text().clear();
+	}
+
+	ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_Always);
+	if (ImGui::BeginPopupModal("New file", nullptr, ImGuiWindowFlags_NoResize))
+	{
+		ImGui::TextWrapped(
+			"Specify the name for the new state machine.\n"
+			"This can, for instance, be \"zombie\", and the files will be created based on this."
+		);
+
+		detail::imgui_set_default_keyboard_focus();
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+		m_shared_input.set_hint("FSM name");
+		m_shared_input.render();
+
+		if (ImGui::Button("Create"))
+		{
+
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel"))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+	ImGui::PopID();
+}
+
+void FsmEditor::render_canvas()
+{
+	ed::SetCurrentEditor(m_context);
+	ed::Begin("My Editor");
+
+	for (auto& p : m_nodes)
+	{
+		ImGui::PushID(p.second.get());
+		p.second->accept(m_node_renderer);
+		ImGui::PopID();
+	}
+
+	handle_item_creation();
+	handle_item_deletion();
+
+	render_links();
+
+	render_popups();
+
+	refresh_selected_objects();
+
+	if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
+	{
+		ed::Suspend();
+		ImGui::OpenPopup("Create new node");
+		ed::Resume();
+	}
+
+	if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape), false))
+	{
+		for (const ed::NodeId& id : m_selected_nodes)
+		{
+			ed::DeselectNode(id);
+		}
+
+		for (const ed::LinkId& id : m_selected_links)
+		{
+			ed::DeselectLink(id);
+		}
+	}
+
+	ed::End();
 }
 
 void FsmEditor::render_links()

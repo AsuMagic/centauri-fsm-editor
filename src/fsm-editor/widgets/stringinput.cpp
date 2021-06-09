@@ -1,6 +1,6 @@
 #include "stringinput.hpp"
 
-#include "../common.hpp"
+#include "../util/imgui.hpp"
 
 namespace fsme
 {

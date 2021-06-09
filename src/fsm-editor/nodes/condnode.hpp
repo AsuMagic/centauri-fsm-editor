@@ -2,6 +2,7 @@
 
 #include "../node.hpp"
 #include "../widgets/boolexprinput.hpp"
+#include "../util/idhash.hpp"
 
 #include <unordered_map>
 
