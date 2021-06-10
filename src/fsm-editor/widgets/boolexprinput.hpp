@@ -44,6 +44,8 @@ class BoolExpressionAutocomplete
 	void add_option(const std::string& category, BoolExpressionOption&& option);
 	const BoolExpressionOption* render(FilterOptions options);
 
+	BoolExpressionOption* find_by_shorthand(const std::string& shorthand);
+
 	private:
 	std::unordered_map<std::string, BoolExpressionCategory> m_categories;
 };
@@ -61,7 +63,7 @@ enum class ExpressionInputType
 
 struct PlainLuaInput
 {
-	std::array<char, 4096> text_buffer = {0};
+	std::array<char, 4096> text_buffer = {};
 };
 
 struct SimpleExpressionInput

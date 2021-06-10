@@ -4,26 +4,33 @@
 #include "visitors/nodemenurenderer.hpp"
 #include "visitors/linkverifier.hpp"
 #include "visitors/nodeduplicator.hpp"
+#include "visitors/nativeserializer.hpp"
+#include "visitors/nativedeserializer.hpp"
 #include "util/erase.hpp"
+
+#include <sstream>
 
 namespace fsme
 {
 
 FsmEditor::FsmEditor(sf::RenderTarget& target) :
 	m_target(&target),
-	m_context(ed::CreateEditor()),
-	m_autocomplete_provider(nullptr),
-	m_last_allocated_id(0)
-{
-	ed::SetCurrentEditor(m_context);
-
-	auto& style = ed::GetStyle();
-	style.LinkStrength = 500.0f;
-}
+	m_context(create_context()),
+	m_autocomplete_provider(nullptr)
+{}
 
 FsmEditor::~FsmEditor()
 {
 	ed::DestroyEditor(m_context);
+}
+
+void FsmEditor::clear()
+{
+	m_state = {};
+	m_volatile = {};
+
+	ed::DestroyEditor(m_context);
+	m_context = create_context();
 }
 
 void FsmEditor::render()
@@ -53,64 +60,64 @@ void FsmEditor::render()
 
 void FsmEditor::destroy_node(ed::NodeId id)
 {
-	detail::map_erase(m_nodes, id);
+	detail::map_erase(m_state.nodes, id);
 }
 
 ed::PinId FsmEditor::create_pin(ed::NodeId node)
 {
 	const ed::PinId id = new_unique_id();
-	m_pin_infos.emplace(std::make_pair(id, PinInfo{node, {}}));
+	m_state.pins.emplace(std::make_pair(id, PinInfo{node, {}}));
 	return id;
 }
 
 void FsmEditor::destroy_pin(ed::PinId pin)
 {
 	destroy_links_involving(pin);
-	detail::map_erase(m_pin_infos, pin);
+	detail::map_erase(m_state.pins, pin);
 }
 
 const PinInfo* FsmEditor::get_pin_info(ed::PinId pin) const
 {
-	const auto it = m_pin_infos.find(pin);
-	return (it != m_pin_infos.end()) ? &it->second : nullptr;
+	const auto it = m_state.pins.find(pin);
+	return (it != m_state.pins.end()) ? &it->second : nullptr;
 }
 
 ed::LinkId FsmEditor::create_link(PinPair pin_pair)
 {
 	const ed::LinkId id = new_unique_id();
 
-	m_link_infos.emplace(std::make_pair(id, pin_pair));
+	m_state.links.emplace(std::make_pair(id, pin_pair));
 
 	LinkInfo link{id, pin_pair};
-	m_pin_infos.at(pin_pair.from).links.push_back(link);
-	m_pin_infos.at(pin_pair.to).links.push_back(link);
+	m_state.pins.at(pin_pair.from).links.push_back(link);
+	m_state.pins.at(pin_pair.to).links.push_back(link);
 
 	return id;
 }
 
 void FsmEditor::destroy_link(ed::LinkId link)
 {
-	const auto it = m_link_infos.find(link);
-	if (it != m_link_infos.end())
+	const auto it = m_state.links.find(link);
+	if (it != m_state.links.end())
 	{
 		const PinPair pin_pair = it->second;
-		m_link_infos.erase(it);
+		m_state.links.erase(it);
 
-		detail::erase(m_pin_infos.at(pin_pair.from).links, pin_pair);
-		detail::erase(m_pin_infos.at(pin_pair.to).links, pin_pair);
+		detail::erase(m_state.pins.at(pin_pair.from).links, pin_pair);
+		detail::erase(m_state.pins.at(pin_pair.to).links, pin_pair);
 	}
 }
 
 const PinPair* FsmEditor::get_link_info(ed::LinkId link) const
 {
-	const auto it = m_link_infos.find(link);
-	return (it != m_link_infos.end()) ? &it->second : nullptr;
+	const auto it = m_state.links.find(link);
+	return (it != m_state.links.end()) ? &it->second : nullptr;
 }
 
 void FsmEditor::destroy_links_involving(ed::PinId pin)
 {
-	const auto it = m_pin_infos.find(pin);
-	if (it != m_pin_infos.end())
+	const auto it = m_state.pins.find(pin);
+	if (it != m_state.pins.end())
 	{
 		const auto& pin_infos = it->second;
 		while (!pin_infos.links.empty())
@@ -123,24 +130,44 @@ void FsmEditor::destroy_links_involving(ed::PinId pin)
 
 Node* FsmEditor::get_node_by_id(ed::NodeId id) const
 {
-	const auto it = m_nodes.find(id);
-	return (it != m_nodes.end()) ? &*it->second : nullptr;
+	const auto it = m_state.nodes.find(id);
+	return (it != m_state.nodes.end()) ? &*it->second : nullptr;
 }
 
 Node* FsmEditor::get_node_by_pin_id(ed::PinId pin) const
 {
-	const auto it = m_pin_infos.find(pin);
-	return (it != m_pin_infos.end()) ? get_node_by_id(it->second.node_id) : nullptr;
+	const auto it = m_state.pins.find(pin);
+	return (it != m_state.pins.end()) ? get_node_by_id(it->second.node_id) : nullptr;
 }
 
 bool FsmEditor::is_link_selected(ed::LinkId link) const
 {
-	return std::find(m_selected_links.begin(), m_selected_links.end(), link) != m_selected_links.end();
+	return std::find(
+		m_volatile.selection.links.begin(),
+		m_volatile.selection.links.end(),
+		link
+	) != m_volatile.selection.links.end();
 }
 
 bool FsmEditor::is_node_selected(ed::NodeId node) const
 {
-	return std::find(m_selected_nodes.begin(), m_selected_nodes.end(), node) != m_selected_nodes.end();
+	return std::find(
+		m_volatile.selection.nodes.begin(),
+		m_volatile.selection.nodes.end(),
+		node
+				) != m_volatile.selection.nodes.end();
+}
+
+ed::EditorContext* FsmEditor::create_context()
+{
+	ed::EditorContext* context = ed::CreateEditor();
+
+	ed::SetCurrentEditor(context);
+
+	auto& style = ed::GetStyle();
+	style.LinkStrength = 500.0f;
+
+	return context;
 }
 
 void FsmEditor::handle_item_creation()
@@ -199,11 +226,11 @@ void FsmEditor::handle_item_deletion()
 
 void FsmEditor::refresh_selected_objects()
 {
-	m_selected_links.resize(ed::GetSelectedObjectCount());
-	m_selected_links.resize(ed::GetSelectedLinks(m_selected_links.data(), m_selected_links.size()));
+	m_volatile.selection.links.resize(ed::GetSelectedObjectCount());
+	m_volatile.selection.links.resize(ed::GetSelectedLinks(m_volatile.selection.links.data(), m_volatile.selection.links.size()));
 
-	m_selected_nodes.resize(ed::GetSelectedObjectCount());
-	m_selected_nodes.resize(ed::GetSelectedNodes(m_selected_nodes.data(), m_selected_nodes.size()));
+	m_volatile.selection.nodes.resize(ed::GetSelectedObjectCount());
+	m_volatile.selection.nodes.resize(ed::GetSelectedNodes(m_volatile.selection.nodes.data(), m_volatile.selection.nodes.size()));
 }
 
 void FsmEditor::render_menu_bar()
@@ -222,7 +249,9 @@ void FsmEditor::render_menu_bar()
 
 			if (ImGui::MenuItem("Save"))
 			{
-
+				std::stringstream ss;
+				visitors::NativeSerializer::serialize(*this, ss);
+				fprintf(stderr, "Size %d\n", int(ss.str().size()));
 			}
 
 			if (ImGui::MenuItem("Save as..."))
@@ -241,6 +270,26 @@ void FsmEditor::render_menu_bar()
 					"Export the FSM graph in a format that can be then translated into Lua source code.\n"
 					"This is a lossy export, so you will not be able to reopen an exported graph into the editor!"
 				);
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Debug"))
+		{
+			ImGui::Text("Last ID: %d", int(m_state.last_allocated_id));
+
+			ImGui::Text("Node count: %d", int(m_state.nodes.size()));
+			ImGui::Text("Link count: %d", int(m_state.links.size()));
+			ImGui::Text("Pin count: %d", int(m_state.pins.size()));
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Reload"))
+			{
+				std::stringstream ss;
+				visitors::NativeSerializer::serialize(*this, ss);
+				visitors::NativeDeserializer::deserialize(*this, ss);
 			}
 
 			ImGui::EndMenu();
@@ -270,7 +319,7 @@ void FsmEditor::render_menu_bar()
 
 		if (ImGui::Button("Create"))
 		{
-
+			// TODO:
 		}
 
 		ImGui::SameLine();
@@ -289,7 +338,7 @@ void FsmEditor::render_canvas()
 	ed::SetCurrentEditor(m_context);
 	ed::Begin("My Editor");
 
-	for (auto& p : m_nodes)
+	for (auto& p : m_state.nodes)
 	{
 		ImGui::PushID(p.second.get());
 		p.second->accept(m_node_renderer);
@@ -305,7 +354,7 @@ void FsmEditor::render_canvas()
 
 	refresh_selected_objects();
 
-	if (m_selected_nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
+	if (m_volatile.selection.nodes.empty() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
 	{
 		ed::Suspend();
 		ImGui::OpenPopup("Create new node");
@@ -314,12 +363,12 @@ void FsmEditor::render_canvas()
 
 	if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape), false))
 	{
-		for (const ed::NodeId& id : m_selected_nodes)
+		for (const ed::NodeId& id : m_volatile.selection.nodes)
 		{
 			ed::DeselectNode(id);
 		}
 
-		for (const ed::LinkId& id : m_selected_links)
+		for (const ed::LinkId& id : m_volatile.selection.links)
 		{
 			ed::DeselectLink(id);
 		}
@@ -330,7 +379,7 @@ void FsmEditor::render_canvas()
 
 void FsmEditor::render_links()
 {
-	for (const auto& p : m_link_infos)
+	for (const auto& p : m_state.links)
 	{
 		const ed::LinkId id = p.first;
 		const PinPair& pins = p.second;
@@ -355,22 +404,22 @@ void FsmEditor::render_popups()
 
 	ed::Suspend();
 
-	if (ed::ShowNodeContextMenu(&m_context_menu_node))
+	if (ed::ShowNodeContextMenu(&m_volatile.context_menu_node))
 	{
 		ImGui::OpenPopup("Node context menu");
-		ed::SelectNode(m_context_menu_node);
+		ed::SelectNode(m_volatile.context_menu_node);
 	}
 
-	if (ed::ShowPinContextMenu(&m_context_menu_pin))
+	if (ed::ShowPinContextMenu(&m_volatile.context_menu_pin))
 	{
 		ImGui::OpenPopup("Pin context menu");
-		ed::SelectNode(get_node_by_pin_id(m_context_menu_pin)->node_id());
+		ed::SelectNode(get_node_by_pin_id(m_volatile.context_menu_pin)->node_id());
 	}
 
-	if (ed::ShowLinkContextMenu(&m_context_menu_link))
+	if (ed::ShowLinkContextMenu(&m_volatile.context_menu_link))
 	{
 		ImGui::OpenPopup("Link context menu");
-		ed::SelectLink(m_context_menu_link);
+		ed::SelectLink(m_volatile.context_menu_link);
 	}
 
 	if (ed::ShowBackgroundContextMenu())
@@ -380,7 +429,7 @@ void FsmEditor::render_popups()
 
 	if (ImGui::BeginPopup("Node context menu"))
 	{
-		Node* node = get_node_by_id(m_context_menu_node);
+		Node* node = get_node_by_id(m_volatile.context_menu_node);
 
 		if (node != nullptr)
 		{
@@ -396,7 +445,7 @@ void FsmEditor::render_popups()
 
 	if (ImGui::BeginPopup("Pin context menu"))
 	{
-		const PinInfo* info = get_pin_info(m_context_menu_pin);
+		const PinInfo* info = get_pin_info(m_volatile.context_menu_pin);
 
 		if (info != nullptr)
 		{
@@ -404,7 +453,7 @@ void FsmEditor::render_popups()
 
 			if (ImGui::Button("Unlink"))
 			{
-				destroy_links_involving(m_context_menu_pin);
+				destroy_links_involving(m_volatile.context_menu_pin);
 				ImGui::CloseCurrentPopup();
 			}
 		}
@@ -418,13 +467,13 @@ void FsmEditor::render_popups()
 
 	if (ImGui::BeginPopup("Link context menu"))
 	{
-		const PinPair* info = get_link_info(m_context_menu_link);
+		const PinPair* info = get_link_info(m_volatile.context_menu_link);
 
 		if (info != nullptr)
 		{
 			if (ImGui::Button("Delete"))
 			{
-				destroy_link(m_context_menu_link);
+				destroy_link(m_volatile.context_menu_link);
 				ImGui::CloseCurrentPopup();
 			}
 

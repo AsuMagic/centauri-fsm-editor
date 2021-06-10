@@ -3,6 +3,7 @@
 #include <vector>
 #include <onidev/core/span.h>
 
+#include "fwd.hpp"
 #include "util/imgui.hpp"
 #include "visitor.hpp"
 
@@ -28,6 +29,9 @@ enum class PinType
 class Node
 {
 public:
+	friend class visitors::NativeSerializer;
+	friend class visitors::NativeDeserializer;
+
 	Node(FsmEditor& editor, ed::NodeId id);
 
 	virtual ~Node();

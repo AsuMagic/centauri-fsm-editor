@@ -63,9 +63,12 @@ class FsmEditor
 {
 public:
 	friend class visitors::NativeSerializer;
+	friend class visitors::NativeDeserializer;
 
 	FsmEditor(sf::RenderTarget& target);
 	~FsmEditor();
+
+	void clear();
 
 	void render();
 
@@ -83,7 +86,7 @@ public:
 		auto ptr = std::make_unique<NodeType>(*this, id);
 		auto& node = *ptr;
 
-		m_nodes.emplace(std::make_pair(id, std::move(ptr)));
+		m_state.nodes.emplace(std::make_pair(id, std::move(ptr)));
 
 		return node;
 	}
@@ -119,6 +122,8 @@ public:
 	widgets::BoolExpressionAutocomplete* get_autocomplete_provider() const;
 
 private:
+	static ed::EditorContext* create_context();
+
 	void handle_item_creation();
 	void handle_item_deletion();
 
@@ -130,34 +135,57 @@ private:
 	void render_links();
 	void render_popups();
 
+	/**
+	 * @brief Holds all of the editor state that should persist in a hypothetical save of the graph.
+	 */
+	struct PersistentState
+	{
+		/**
+		 * @brief Last ID allocated through new_unique_id(), which should be persistent as to not override existing IDs
+		 * when reloading from a file.
+		 */
+		std::size_t last_allocated_id = 0;
+
+		std::unordered_map<ed::PinId, PinInfo> pins;
+		std::unordered_map<ed::LinkId, PinPair> links;
+		std::unordered_map<ed::NodeId, std::unique_ptr<Node>> nodes;
+	};
+
+	/**
+	 * @brief Holds volatile editor state that should not be saved in a hypothetical save of the graph.
+	 * @see PersistentState
+	 */
+	struct VolatileState
+	{
+		struct
+		{
+			std::vector<ed::LinkId> links;
+			std::vector<ed::NodeId> nodes;
+		} selection;
+
+		ed::NodeId context_menu_node;
+		ed::PinId context_menu_pin;
+		ed::LinkId context_menu_link;
+	};
+
 	sf::RenderTarget* m_target;
 
 	ed::EditorContext* m_context;
 
 	widgets::BoolExpressionAutocomplete* m_autocomplete_provider;
 
-	widgets::StringInput m_shared_input;
-
 	visitors::NodeRenderer m_node_renderer;
 	visitors::NodeMenuRenderer m_node_menu_renderer;
 
-	std::size_t m_last_allocated_id;
+	widgets::StringInput m_shared_input;
 
-	ed::NodeId m_context_menu_node;
-	ed::PinId m_context_menu_pin;
-	ed::LinkId m_context_menu_link;
-
-	std::vector<ed::LinkId> m_selected_links;
-	std::vector<ed::NodeId> m_selected_nodes;
-
-	std::unordered_map<ed::PinId, PinInfo> m_pin_infos;
-	std::unordered_map<ed::LinkId, PinPair> m_link_infos;
-	std::unordered_map<ed::NodeId, std::unique_ptr<Node>> m_nodes;
+	PersistentState m_state;
+	VolatileState m_volatile;
 };
 
 inline std::size_t FsmEditor::new_unique_id()
 {
-	return ++m_last_allocated_id;
+	return ++m_state.last_allocated_id;
 }
 
 inline void FsmEditor::set_autocomplete_provider(widgets::BoolExpressionAutocomplete* autocomplete_provider)

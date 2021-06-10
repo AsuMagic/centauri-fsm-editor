@@ -11,6 +11,8 @@ namespace widgets
 class StringInput
 {
 public:
+	using Buffer = std::array<char, 4096>;
+
 	StringInput();
 
 	void render(bool editable = true);
@@ -18,12 +20,19 @@ public:
 	void set_text(const std::string& value);
 	std::string get_text() const;
 
+	Buffer& get_buffer();
+
 	void set_hint(std::string value);
 
 private:
-	std::array<char, 4096> m_buffer;
+	Buffer m_buffer;
 	std::string m_hint;
 };
+
+inline StringInput::Buffer& StringInput::get_buffer()
+{
+	return m_buffer;
+}
 
 }
 }

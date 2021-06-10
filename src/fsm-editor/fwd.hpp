@@ -35,6 +35,7 @@ namespace visitors
 class CentauriSerializer;
 class LinkVerifier;
 class NativeSerializer;
+class NativeDeserializer;
 class NodeDuplicator;
 class NodeMenuRenderer;
 class NodeRenderer;

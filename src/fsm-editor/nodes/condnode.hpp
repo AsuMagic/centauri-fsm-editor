@@ -17,6 +17,8 @@ namespace nodes
 class CondNode : public Node
 {
 	public:
+	friend class visitors::NativeDeserializer;
+
 	CondNode(FsmEditor& editor, ed::NodeId id);
 
 	void accept(NodeVisitor& v) override;

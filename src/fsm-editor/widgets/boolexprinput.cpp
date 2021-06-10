@@ -206,6 +206,23 @@ const BoolExpressionOption* BoolExpressionAutocomplete::render(FilterOptions opt
 	return selected_option;
 }
 
+BoolExpressionOption* BoolExpressionAutocomplete::find_by_shorthand(const std::string& shorthand)
+{
+	// TODO: this is O(n) and it would not need to be with associative containers or cache
+	for (auto& category : m_categories)
+	{
+		for (auto& option : category.second.options)
+		{
+			if (option.shorthand == shorthand)
+			{
+				return &option;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 std::string SimpleExpressionInput::text_preview() const
 {
 	std::string ret;

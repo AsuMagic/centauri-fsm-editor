@@ -2,6 +2,7 @@
 
 #include "../fwd.hpp"
 #include "../visitor.hpp"
+#include "../util/nativeformat.hpp"
 
 #include <ostream>
 
@@ -13,10 +14,13 @@ namespace visitors
 /**
  * @brief Visitor to help serialize the FSM into the native editor format.
  * @see CentauriSerializer
+ * @see NativeDeserializer
  */
 class NativeSerializer : public NodeVisitor
 {
 public:
+	static void serialize(FsmEditor& editor, std::ostream& output);
+
 	void visit(nodes::CondNode& node) override;
 	void visit(nodes::IfNode& node) override;
 	void visit(nodes::StateNode& node) override;
@@ -24,26 +28,26 @@ public:
 private:
 	NativeSerializer(std::ostream& output);
 
-	void serialize_node_header(const Node& node);
-	void serialize_expression(widgets::BoolExpressionInput& expression);
+	void write(const Node& node);
+	void write(widgets::BoolExpressionInput& expression);
 
 	template<class T>
-	void serialize_memcpy(const T& value)
+	void write_memcpy(const T& value)
 	{
-		m_out->write(reinterpret_cast<char*>(value), sizeof(value));
+		m_out->write(reinterpret_cast<const char*>(&value), sizeof(value));
 	}
 
 	template<class T>
-	void serialize_char_array(const T& container)
+	void write_char_array(const T& container)
 	{
-		serialize_memcpy(std::uint64_t(container.size()));
+		write_memcpy(std::uint64_t(container.size()));
 		m_out->write(container.data(), container.size());
 	}
 
 	template<class T, class Func>
-	void serialize_container(const T& container, const Func& element_serializer)
+	void write_container(const T& container, const Func& element_serializer)
 	{
-		serialize_memcpy(std::uint64_t(container.size()));
+		write_memcpy(std::uint64_t(container.size()));
 
 		for (const auto& elem : container)
 		{
