@@ -71,7 +71,7 @@ void NativeSerializer::visit(nodes::StateNode& node)
 {
 	write_memcpy(native_format::NodeType::STATE);
 	write(node);
-	write_char_array(node.get_name_input().get_text());
+	write_string(node.get_name_input().get_text());
 }
 
 NativeSerializer::NativeSerializer(std::ostream& output) :
@@ -94,11 +94,11 @@ void NativeSerializer::write(const Node& node)
 void NativeSerializer::write(widgets::BoolExpressionInput& expression)
 {
 	write_memcpy(std::uint8_t(expression.get_input_type()));
-	write_char_array(expression.get_raw_lua_input().text_buffer);
+	write_string(std::string(expression.get_raw_lua_input().text_buffer.data()));
 	write_container(
 		expression.get_raw_simple_expression_input().options,
 		[this](const widgets::BoolExpressionOption* option) {
-			write_char_array(option->shorthand);
+			write_string(option->shorthand);
 		}
 	);
 }

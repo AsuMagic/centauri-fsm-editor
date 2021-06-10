@@ -38,7 +38,7 @@ private:
 	}
 
 	template<class T>
-	void write_char_array(const T& container)
+	void write_string(const T& container)
 	{
 		write_memcpy(std::uint64_t(container.size()));
 		m_out->write(container.data(), container.size());

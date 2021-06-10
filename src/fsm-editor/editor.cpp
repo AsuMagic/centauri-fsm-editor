@@ -289,6 +289,7 @@ void FsmEditor::render_menu_bar()
 			{
 				std::stringstream ss;
 				visitors::NativeSerializer::serialize(*this, ss);
+				fprintf(stderr, "Serialized form is %d bytes\n", int(ss.str().size()));
 				visitors::NativeDeserializer::deserialize(*this, ss);
 			}
 
